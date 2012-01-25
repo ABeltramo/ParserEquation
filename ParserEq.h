@@ -13,8 +13,9 @@ template <class Type> class Equation{
     Type c; //termine noto
     string x; //Stringa dell'incognita X
     string y; //Stringa dell'incognita Y
-    void ReadFun(string Fun); //Funzione che da una stringa estrapola a,b e c
     Equation(string Fun); //Costruttore
+    Equation(void);
+    void ReadFun(string Fun); //Funzione che da una stringa estrapola a,b e c
     Type Fy(Type ValX); //Calcola la Y
     Type Fx(Type ValY); //Calcola la X
     Type EvalEx(string Eq); //Calcola il risultato di un espressione
@@ -24,6 +25,8 @@ template <class Type> class Equation{
     bool IsSeg(char N);
     int LastPar(string Fun); //Segue l'ordine delle parentesi e restituisce la posizione dell'ultima parentesi
 };
+
+template <class Type> Equation<Type>::Equation(void){return;}
 
 template <class Type> Equation<Type>::Equation(string Fun){
     ReadFun(Fun);                          
@@ -68,12 +71,10 @@ template <class Type> void Equation<Type>::ReadFun(string Fun){
     int FinX,FinY;
     Type Dec;
     //CERCO A
-    //Cerco la posizione di X
-    int PosX = Fun.find('x');   
-    // FindLast '*' (Fun.substr(0,PosX)) in modo da isolare il coefficiente dall'incognita 
+    int PosX = Fun.find('x'); //Cerco la posizione di X  
     int PosAst = Fun.substr(0,PosX).find_last_of('*'); //posizione dell'ultimo asterisco prima di x
     FinX = LastPar(Fun.substr(PosAst+1))+1; //Dove la x finisce nella sottostringa (FINE RELATIVA)
-    x =  Fun.substr(PosAst+1,FinX);
+    x =  Fun.substr(PosAst+1,FinX);// tutta la variabile x
     FinX += PosAst; //Dove la X finisce nella stringa di partenza (FINE ASSOLUTA)
     a = EvalEx(Fun.substr(0,PosAst)); //Faccio valutare dal parser l'espressione
     //CERCO B
@@ -89,7 +90,7 @@ template <class Type> void Equation<Type>::ReadFun(string Fun){
     c = EvalEx(Fun.substr(++PosY)); //Faccio valutare dal parser l'espressione
 }
 
-template <class Type> Type Equation<Type>::Fy(Type ValX){ //Calcola la y
+template <class Type> Type Equation<Type>::Fy(Type ValX){ //Calcola la y SOLO se l'incognita=y
     try{
       Parser Ex;   
       Ex["x"] = ValX;
@@ -103,7 +104,7 @@ template <class Type> Type Equation<Type>::Fy(Type ValX){ //Calcola la y
     }  
 }
 
-template <class Type> Type Equation<Type>::Fx(Type ValY){ //calcola la X
+template <class Type> Type Equation<Type>::Fx(Type ValY){ //calcola la X SOLO se l'incognita=x
     try{      
       Parser Ex;  
       Ex["y"] = ValY;

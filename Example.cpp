@@ -4,9 +4,9 @@ using namespace std;
 
 int main(){
     try{
-        Equation<double> Ris("5*3/0*sin(x)+6*y=2");
+        Equation<double> Ris("-5*(pow(x,2))-6*y=6");
         cout << "a=" << Ris.a << " b=" << Ris.b << " c=" << Ris.c << endl;
-        cout << "x->" << Ris.x << " y->" << Ris.y << endl; 
+        cout << "x=" << Ris.x << " & y=" << Ris.y << endl; 
         cout << Ris.y << "=" << Ris.Fy(0) << endl;
     }
     catch (exception & Err){
