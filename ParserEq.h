@@ -1,53 +1,118 @@
+#include <iostream>
+using namespace std;
 #include <string>
-#include <math.h>
-struct Equation{
-  double a;
-  double b;
-  double c;  
+#include <cstdlib>
+#include <algorithm>
+#include <stdexcept>
+#include "ExParser.cpp"
+
+template <class Type> class Equation{  
+  public:    
+    Type a; //Coefficiente di x
+    Type b; //Coefficiente di y
+    Type c; //termine noto
+    string x; //Stringa dell'incognita X
+    string y; //Stringa dell'incognita Y
+    void ReadFun(string Fun); //Funzione che da una stringa estrapola a,b e c
+    Equation(string Fun); //Costruttore
+    Type Fy(Type ValX); //Calcola la Y
+    Type Fx(Type ValY); //Calcola la X
+    Type EvalEx(string Eq); //Calcola il risultato di un espressione
+    //Aggiungere << e = 
+  private:
+    int Segno(char N);
+    bool IsSeg(char N);
+    int LastPar(string Fun); //Segue l'ordine delle parentesi e restituisce la posizione dell'ultima parentesi
 };
 
-int ConvChar(char car){//Converte un carattere in intero
-    int intero = 0; // in caso di caratteri diversi restituisce 0
-    if(car >= '0' && car <= '9')
-        intero = (int)(car - '0');
-    return intero;   
+template <class Type> Equation<Type>::Equation(string Fun){
+    ReadFun(Fun);                          
 }
 
-double ConvStr(string Fun){
-    // se non mette il coefficente o l'unico carattere è un segno restituisco 1
-    if (Fun.length() == 0 || (Fun.length() == 1 && Fun[0] == '-'))
-        return 1;
-    double Ris = 0;
-    double Dec = pow(10,Fun.length()-1);
-    for(int i=0;i<Fun.length();i++){
-        Ris += Dec*ConvChar(Fun[i]);
-        Dec /= 10;    
+template <class Type> int Equation<Type>::Segno(char N){
+    return (N == '-') ? -1 : 1;   
+}
+
+template <class Type> bool Equation<Type>::IsSeg(char N){
+    return (N == '-' || N == '+') ? true : false;
+}
+
+template <class Type> Type Equation<Type>::EvalEx(string Eq){
+    Parser Ex(Eq);
+    try{
+        return Ex.Evaluate();
     }
-    return Ris;
+    catch (exception & Err){
+       throw runtime_error(Err.what()); //Restituisco l'errore che viene generato dal parser  
+    }
 }
 
-Equation ReadFun(string Fun){
+template <class Type> int Equation<Type>::LastPar(string Fun){
+    int NumPa = 1; //Numero di parentesi
+    int i = Fun.find('('); // ricerco la prima aperta tonda
+    if (i == (int)string::npos)
+       return 0;
+    while(NumPa > 0 && i < Fun.length()){
+        i++; //Leggo il successivo
+        if(Fun[i] == '(')
+            NumPa++;
+        else if(Fun[i] == ')')
+            NumPa--;
+    }
+    return i;
+}
+
+template <class Type> void Equation<Type>::ReadFun(string Fun){
+    transform(Fun.begin(), Fun.end(),Fun.begin(), ::tolower); //Trasformo la stringa in minuscolo
     int Pos = 0;
-    double Dec;
-    Equation Ris;
+    int FinX,FinY;
+    Type Dec;
     //CERCO A
     //Cerco la posizione di X
-    int PosX = Fun.find('x');
-    Ris.a = ConvStr(Fun.substr(0,PosX));
-    if (Fun[0] == '-') //se il segno era meno cambio di segno il risultato
-        Ris.a *= -1;
+    int PosX = Fun.find('x');   
+    // FindLast '*' (Fun.substr(0,PosX)) in modo da isolare il coefficiente dall'incognita 
+    int PosAst = Fun.substr(0,PosX).find_last_of('*'); //posizione dell'ultimo asterisco prima di x
+    FinX = LastPar(Fun.substr(PosAst+1))+1; //Dove la x finisce nella sottostringa (FINE RELATIVA)
+    x =  Fun.substr(PosAst+1,FinX);
+    FinX += PosAst; //Dove la X finisce nella stringa di partenza (FINE ASSOLUTA)
+    a = EvalEx(Fun.substr(0,PosAst)); //Faccio valutare dal parser l'espressione
     //CERCO B
-    //Salto la X nella PosX
-    PosX += 2;   
+    while (!IsSeg(Fun[++FinX])); //Salto tutti i caratteri successivi fino a trovare o '+' o '-' 
     int PosY = Fun.find('y');
-    Ris.b = ConvStr(Fun.substr(PosX,PosY-PosX));
-    if (Fun[--PosX] == '-') //se il segno era meno cambio di segno il risultato
-        Ris.b *= -1;
+    PosAst = Fun.substr(FinX,PosY).find_last_of('*') + FinX; //posizione dell'ultimo asterisco prima di y
+    FinY = LastPar(Fun.substr(PosAst+1)) + 1; //Dove la y finisce nella sottostringa (FINE RELATIVA)
+    y =  Fun.substr(PosAst+1,FinY);
+    FinY += PosAst; //Dove la y finisce nella stringa di partenza (FINE ASSOLUTA)
+    b = EvalEx(Fun.substr(FinX,PosAst-FinX)); //Faccio valutare dal parser l'espressione
     //CERCO IL TERMINE NOTO
-    //Salto la Y nella PosY
-    PosY += 2;
-    Ris.c = ConvStr(Fun.substr(PosY)); 
-    if (Fun[PosY] == '-') //se il segno era meno cambio di segno il risultato
-        Ris.c *= -1;
-    return Ris;
+    while (Fun[++PosY] != '='); //Salto tutti i caratteri successivi fino a trovare '='  
+    c = EvalEx(Fun.substr(++PosY)); //Faccio valutare dal parser l'espressione
+}
+
+template <class Type> Type Equation<Type>::Fy(Type ValX){ //Calcola la y
+    try{
+      Parser Ex;   
+      Ex["x"] = ValX;
+      Ex["a"] = a;
+      Ex["b"] = b;
+      Ex["c"] = c;
+      return Ex.Evaluate("(-a*"+x+"+c)/b");
+    }
+    catch (exception & Err){
+       throw runtime_error(Err.what()); //Restituisco l'errore che viene generato dal parser  
+    }  
+}
+
+template <class Type> Type Equation<Type>::Fx(Type ValY){ //calcola la X
+    try{      
+      Parser Ex;  
+      Ex["y"] = ValY;
+      Ex["a"] = a;
+      Ex["b"] = b;
+      Ex["c"] = c;
+      return Ex.Evaluate("(-b*"+y+"+c)/a"); 
+    }
+    catch (exception & Err){
+       throw runtime_error(Err.what()); //Restituisco l'errore che viene generato dal parser  
+    } 
 }
